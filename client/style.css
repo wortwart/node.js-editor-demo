@@ -1,0 +1,18 @@
+* {
+	font-family: Verdana, Arial, sans-serif;
+}
+pre {
+	border: 1px solid darkgreen;
+	padding: 1em;
+	white-space: pre-wrap;
+}
+table {
+	border: 1px solid grey;
+}
+th, td {
+	outline: 1px solid lightgrey;
+	margin: 0;
+}
+nav {
+	float: right;
+}
