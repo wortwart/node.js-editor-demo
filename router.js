@@ -1,33 +1,33 @@
 var fs = require("fs");
 var url = require("url");
 
-function startseite(anfrage, antwort) {
-	console.log("Führe Startseite aus.")
-	antwort.writeHead(200, {"Content-type": "text/html; charset=utf-8"});
+function startpage(req, resp) {
+	console.log("Executing startpage.")
+	resp.writeHead(200, {"Content-type": "text/html; charset=utf-8"});
 	var template = fs.createReadStream("template_start_head.html")
-	template.pipe(antwort, {end: false});
+	template.pipe(resp, {end: false});
 	template.on("end", function() {
 		fs.readdir(filePath, function(err, dateien) {
 			if (err) {
-				antwort.end("<p>Verzeichnis <code>" + filePath + "</code> nicht gefunden!</p>");
+				resp.end("<p>Directory <code>" + filePath + "</code> not found!</p>");
 				return;
 			}
 			else if (!dateien.length) {
-				antwort.end("<p>Keine Dateien in <code>" + filePath + "</code> gefunden!</p>");
+				resp.end("<p>No files found in <code>" + filePath + "</code>!</p>");
 				return;
 			}
-			antwort.write("<p>Verzeichnis: " + filePath + "</p>");
-			antwort.write("<table>\n <thead><th>Name</th><th>Größe</th><th>Änderungsdatum</th></thead>\n <tbody>\n")
-			dateien.forEach(function(datei, i) {
-				fs.stat(filePath + datei, function(err, stats) {
+			resp.write("<p>Directory: " + filePath + "</p>");
+			resp.write("<table>\n <thead><th>Name</th><th>Size</th><th>Last modified</th></thead>\n <tbody>\n")
+			dateien.forEach(function(file, i) {
+				fs.stat(filePath + file, function(err, stats) {
 					if (stats.isFile()) {
 						//console.log(stats);
-						antwort.write("  <tr>\n   <td><a href='./edit?datei=" + datei + "'>" + datei + "</a></td>\n");
-						antwort.write("   <td>" + stats.size + "</td>\n");
+						resp.write("  <tr>\n   <td><a href='./edit?file=" + file + "'>" + file + "</a></td>\n");
+						resp.write("   <td>" + stats.size + "</td>\n");
 						var datum = stats.mtime.getDate() + '.' + (stats.mtime.getMonth() + 1) + '.' + stats.mtime.getFullYear() + ' ' + stats.mtime.getHours() + ':' + stats.mtime.getMinutes();
-						antwort.write("   <td>" + datum + "</td>\n  </tr>\n");
+						resp.write("   <td>" + datum + "</td>\n  </tr>\n");
 						if (i + 1 === dateien.length) {
-							fs.createReadStream("template_start_foot.html").pipe(antwort);
+							fs.createReadStream("template_start_foot.html").pipe(resp);
 						}
 					}
 				});
@@ -36,81 +36,80 @@ function startseite(anfrage, antwort) {
 	});
 }
 
-function edit(anfrage, antwort, datei) {
-	console.log("Führe Edit-Seite aus.")
-	antwort.writeHead(200, {"Content-type": "text/html; charset=utf-8"});
-	fs.readFile("template_edit_head.html", function(err, inhalt) {
-		antwort.write(inhalt);
-		if (datei) {
-			antwort.write("<h2>Datei " + datei + " geändert</h2>");
+function edit(req, resp, file) {
+	console.log("Executing edit.")
+	resp.writeHead(200, {"Content-type": "text/html; charset=utf-8"});
+	fs.readFile("template_edit_head.html", function(err, content) {
+		resp.write(content);
+		if (file) {
+			resp.write("<h2>Changed File " + file + "</h2>");
 		} else {
-			datei = url.parse(anfrage.url, true).query.datei;
-			antwort.write("<h2>Editiere " + filePath + datei + " ...</h2>\n");
+			file = url.parse(req.url, true).query.file;
+			resp.write("<h2>Editing " + filePath + file + " ...</h2>\n");
 		}
-	  if (!datei || datei.match(/[/\\%]/)) {
-	  	antwort.end("<p>Ungültiger Dateiname: " + datei + "</p></body></html>");
+	  if (!file || file.match(/[/\\%]/)) {
+	  	resp.end("<p>Ungültiger Dateiname: " + file + "</p></body></html>");
 	  	return;
 	  }
-		antwort.write("<pre contenteditable>");
-	  var stream = fs.createReadStream(filePath + datei);
-	  stream.pipe(antwort, {end: false});
+		resp.write("<pre contenteditable>");
+	  var stream = fs.createReadStream(filePath + file);
+	  stream.pipe(resp, {end: false});
 	  stream.on("end", function() {
-			fs.readFile("template_edit_foot.html", function(err, inhalt) {
-				antwort.end(inhalt.toString().replace("%%datei%%", datei));
+			fs.readFile("template_edit_foot.html", function(err, content) {
+				resp.end(content.toString().replace("%%file%%", file));
 			});
 	  });
 	});
 }
 
-function save(anfrage, antwort) {
-	console.log("Führe Save-Seite aus.");
-	var post = '';
-	if (anfrage.method == 'POST') {
-	  anfrage.on('data', function(chunk) {
-	  	post += chunk.toString();
+function save(req, resp) {
+	console.log("Executing save.");
+	var chunks = ''; // or: = new Buffer([]);
+	if (req.method == 'POST') {
+	  req.on('data', function(chunk) {
+	  	chunks += chunk; // or: = Buffer.concat([chunks, chunk]);
 	  });
-	  anfrage.on('end', function() {
+	  req.on('end', function() {
 			var querystring = require("querystring");
-			var datei = querystring.parse(post).datei;
-		  if (!datei || datei.match(/[/\\%]/)) {
-				antwort.writeHead(200, {"Content-type": "text/html; charset=utf-8"});
-		  	antwort.end("<p>Ungültiger Dateiname: " + datei + "</p></body></html>");
+	  	var post = querystring.parse(chunks.toString());
+		  if (!post.file || post.file.match(/[/\\%]/)) {
+				resp.writeHead(200, {"Content-type": "text/html; charset=utf-8"});
+		  	resp.end("<p>Invalid file name: " + post.file + "</p></body></html>");
 		  	return;
 		  }
-	  	var text = querystring.parse(post).text;
-	  	var schreibstream = fs.createWriteStream(filePath + datei);
-	  	schreibstream.end(text, "utf8", function() {
-	  		edit(anfrage, antwort, datei);
+	  	var writestream = fs.createWriteStream(filePath + post.file);
+	  	writestream.end(post.text, "utf8", function() {
+	  		edit(req, resp, post.file);
 	  	});
 		});
 	} else {
-		edit(anfrage, antwort);
+		edit(req, resp);
 	}
 }
 
-function outputFile(antwort, pfad) {
+function outputFile(resp, path) {
 	var type = {
 		"js": "text/javascript; charset=utf-8",
 		"css": "text/css; charset=utf-8"
 	}
 	var regex = /^\/client\/[\w.-]+\.(\w+)$/;
-	var match = regex.exec(pfad);
+	var match = regex.exec(path);
 	if (match) {
-		antwort.writeHead(200, {"Content-type": type[match[1]]});
-		fs.createReadStream("." + pfad).pipe(antwort);
+		resp.writeHead(200, {"Content-type": type[match[1]]});
+		fs.createReadStream("." + path).pipe(resp);
 	} else {
-		f404(antwort, pfad);
+		f404(resp, path);
 		return;
 	}
 }
 
-function f404(antwort, pfad) {
-	console.warn("Fehler 404.")
-	antwort.writeHead(404, {"Content-type": "text/html; charset=utf-8"});
-	antwort.end("Seite " + pfad + " nicht gefunden.");
+function f404(resp, path) {
+	console.warn("Error 404.")
+	resp.writeHead(404, {"Content-type": "text/html; charset=utf-8"});
+	resp.end("Page " + path + " not found.");
 }
 
-exports.startseite = startseite;
+exports.startpage = startpage;
 exports.edit = edit;
 exports.save = save;
 exports.outputFile = outputFile;
