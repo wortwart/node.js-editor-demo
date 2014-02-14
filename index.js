@@ -1,29 +1,29 @@
-global.filePath = "./testtexte/";
-// Pfad zum einzulesenden Verzeichnis
-// dank global ist die Variable auch in router.js verfügbar
+global.filePath = "./testtexts/";
+// Path to directory containing the text files
+// "global" makes variable also available in router.js
 
 var http = require("http");
 var url = require("url");
 var router = require("./router");
 
 var routes = {
-  "/": router.startseite,
+  "/": router.startpage,
   "/edit": router.edit,
   "/save": router.save
 };
 
-function onRequest(anfrage, antwort) {
+function onRequest(req, resp) {
   var postData = '';
-  var pfad = url.parse(anfrage.url).pathname;
-  console.log("Aufgerufen wurde: " + pfad);
+  var pfad = url.parse(req.url).pathname;
+  console.log("Called: " + pfad);
   if (routes[pfad]) {
-  	routes[pfad](anfrage, antwort);
+  	routes[pfad](req, resp);
   } else if (pfad.match(/^\/client\//)) {
-		router.outputFile(antwort, pfad);
+		router.outputFile(resp, pfad);
 	} else {
-		router.f404(antwort, pfad);
+		router.f404(resp, pfad);
   }
 }
 
 http.createServer(onRequest).listen(8080);
-console.log("Server ist gestartet.");
+console.log("Server has started.");
