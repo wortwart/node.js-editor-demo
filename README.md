@@ -1,3 +1,3 @@
-A directory viewer and text file editor for Node.js.
+#Directory viewer and text file editor for Node.js
 
-This tutorial project was started by Herbert Braun and featured in c't Magazin 4/2014. More information: www.woerter.de/textverzeichnis/#filter/id=168 (in German).
+A tutorial project for Node.js beginners featured in [c't Magazin 4/2014](https://www.heise.de/ct/ausgabe/2014-4-JavaScript-Anwendungen-fuer-den-Server-mit-Node-js-2222955.html) (in German); see also [woerter.de/textverzeichnis](http://www.woerter.de/textverzeichnis/#filter/id=168).
